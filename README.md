@@ -12,13 +12,13 @@ Project folder breakdown:
 Creates the API application. UploadFile Handles uploaded files. File Tells FastAPI that the parameter should come from a file upload.
 ** from fastapi import FastAPI, UploadFile, File**
 
-# Handle cors
+ Handle cors
 ** from fastapi.middleware.cors import CORSMiddleware ** 
 
-# will be using for CSV processing.
+will be using for CSV processing.
 ** import pandas as pd ** 
 
-# StringIO is used to treat a string as a file object in memory.
+StringIO is used to treat a string as a file object in memory.
 ** from io import StringIO ** 
 Normally, functions like pandas.read_csv() expect a file. If your data is already in a string, StringIO creates a file-like object so those functions can read it.
 Example: 

@@ -21,6 +21,7 @@ will be using for CSV processing.
 StringIO is used to treat a string as a file object in memory.
 ** from io import StringIO ** 
 Normally, functions like pandas.read_csv() expect a file. If your data is already in a string, StringIO creates a file-like object so those functions can read it.
+
 Example: 
 from io import StringIO
 import pandas as pd
@@ -36,10 +37,10 @@ df = pd.read_csv(file_like_object)
 
 print(df)
 
-# used fastapi with metadata for Swagger documentation
-# done cors configurations
-# created folders for raw and cleaned data
-# created API endpoints 
+ - used fastapi with metadata for Swagger documentation
+ - done cors configurations
+ - created folders for raw and cleaned data
+ - created API endpoints 
 @app.get("/") 
 for check app is working
 @app.post("/summary")

@@ -1,511 +1,154 @@
-# Clean Data Pipeline API
-
-A FastAPI-based backend application for uploading, validating, cleaning, and summarizing CSV files.
-
-The API accepts a CSV file, performs validation checks, cleans the dataset, generates summary statistics, stores both raw and cleaned files, and returns a structured JSON response.
-
----
-
-## Features
-
-- CSV file upload
-- MIME type validation
-- File extension validation
-- File size validation (5 MB limit)
-- Filename sanitization
-- Path traversal protection
-- Multiple encoding support
-  - UTF-8
-  - Latin-1
-  - CP1252
-- Empty CSV validation
-- Malformed CSV detection
-- Duplicate row removal
-- Null value removal
-- Whitespace trimming
-- Dataset summary generation
-- Structured logging
-- Swagger API documentation
-- Automated testing with Pytest
-
----
-
-## Technology Stack
-
-| Technology | Purpose |
-|------------|----------|
-| Python | Programming Language |
-| FastAPI | API Framework |
-| Pandas | CSV Processing |
-| NumPy | Data Operations |
-| Uvicorn | ASGI Server |
-| Pydantic | Data Validation |
-| Pytest | Automated Testing |
-
----
-
-## Project Structure
-
-```text
-clean-data-pipeline/
-│
-├── api/
-│   └── app.py
-│
-├── src/
-│   ├── datacleaner.py
-│   ├── datasummary.py
-│   ├── loggerfile.py
-│   │
-│   └── services/
-│       └── csv_service.py
-│
-├── data/
-│   ├── raw/
-│   └── cleaned/
-│
-├── logs/
-│   └── app.log
-│
-├── tests/
-│   ├── test_cleaner.py
-│   ├── test_loader.py
-│   ├── test_summary.py
-│   └── test_main.py
-│
-├── requirements.txt
-├── requirements-dev.txt
-└── README.md
-```
-
----
-
-## Application Flow
-
-```text
-Client Upload CSV
-        |
-        v
-FastAPI Endpoint
-        |
-        v
-Validate File
-        |
-        v
-Save Raw File
-        |
-        v
-Decode Content
-        |
-        v
-Create DataFrame
-        |
-        v
-Clean Data
-        |
-        v
-Generate Summary
-        |
-        v
-Save Cleaned CSV
-        |
-        v
-Return JSON Response
-```
+# clean-data-pipeline
+
+I have created CSV Cleaning Backend API for csv file. via this api endpoint you will be
+able to upload the csv and clean your csv.
+
+Project flow will be, user upload csv file -> fastapi will get csv file -> load csv using pandas -> pass csv through the cleaning funcion -> generate the summary -> save the cleaned csv file -> return json response of api call.
+
+
+Project folder breakdown:
+
+# 1. api/app.py
+Creates the API application. UploadFile Handles uploaded files. File Tells FastAPI that the parameter should come from a file upload.
+** from fastapi import FastAPI, UploadFile, File**
+
+ Handle cors
+** from fastapi.middleware.cors import CORSMiddleware ** 
+
+will be using for CSV processing.
+** import pandas as pd ** 
+
+StringIO is used to treat a string as a file object in memory.
+** from io import StringIO ** 
+Normally, functions like pandas.read_csv() expect a file. If your data is already in a string, StringIO creates a file-like object so those functions can read it.
+
+Example: 
+from io import StringIO
+import pandas as pd
+
+csv_data = """name,age
+Sumit,25
+Rahul,30
+"""
+
+file_like_object = StringIO(csv_data)
+
+df = pd.read_csv(file_like_object)
+
+print(df)
+
+ - used fastapi with metadata for Swagger documentation
+ - done cors configurations
+ - created folders for raw and cleaned data
+ - created API endpoints 
+@app.get("/") 
+for check app is working
+@app.post("/summary")
+Handles the complete CSV processing pipeline:
+- Accepts a CSV file upload.
+- Validates the uploaded file.
+- Creates folders for storing raw and cleaned files.
+- Saves the original CSV file.
+- Loads the CSV into a Pandas DataFrame.
+- Cleans the data using the `clean_data()` function.
+- Generates dataset statistics using the `data_summary()` function.
+- Saves the cleaned CSV file.
+- Returns a JSON response containing file paths, cleaning report, and summary information.
+
+
+# 2. src/datacleaner.py
+    Cleans and preprocesses a DataFrame.
+    Trims whitespace from string columns (trim_whitespace=True).
+    Removes rows with null values (drop_nulls=True).
+    Removes duplicate rows.
+    Supports duplicate removal based on specific columns (duplicate_subset).
+    Logs row count before cleaning.
+    Logs row count after cleaning.
+    Returns the cleaned DataFrame.
+# 3. src/dataloader.py
+    Loads a CSV file into a Pandas DataFrame.
+    Reads the CSV using pd.read_csv().
+    Returns the loaded DataFrame.
+    Handles missing file errors (FileNotFoundError).
+    Handles empty CSV files (EmptyDataError).
+    Handles invalid CSV format errors (ParserError).
+    Provides user-friendly error messages.
+    Catches and reports unexpected exceptions.
+
+# 4. src/datasummary.py
+    Generates summary statistics for a DataFrame.
+    Returns the summary as a dictionary.
+    Calculates total number of rows.
+    Calculates total number of columns.
+    Calculates missing values for each column.
+    Calculates total duplicate rows.
+    Identifies data types of all columns.
+    Provides a quick overview of dataset quality and structure.
+
+# 5. loggerfile.py
+    Configures application logging.
+    Creates a logs directory if it does not exist.
+    Stores log messages in logs/app.log.
+    Sets logging level to INFO.
+    Records log timestamp, log level, and message.
+    Helps track application activity and errors.
+    Useful for debugging and monitoring the application.
+
+
+
+# 6. tests/test_cleaner.py
+    1. Import pandas
+    2. Import clean_data function
+    3. Create test function
+    4. Create data with 2 identical rows
+    5. Convert data into DataFrame
+    6. Call clean_data()
+    7. clean_data() removes duplicates
+    8. Check remaining row count
+    9. Test passes if count == 1
+     10. Test fails with AssertionError if count != 1
+
+# 7. tests/test_loader.py
+     flow of test_load_csv_success():
+        1. Call load_csv("tests/sample.csv")
+        2. CSV file is found
+        3. Data is loaded into a DataFrame
+        4. Check number of rows using len(df)
+        5. Assert that row count is greater than 0
+        6. Test passes if CSV contains data
+
+     Flow of test_load_csv_missing_file()
+        1. Enter pytest.raises(FileNotFoundError) block
+        2. Call load_csv("missing.csv")
+        3. load_csv raises FileNotFoundError
+        4. pytest catches the exception
+        5. Test passes because the expected exception occurred
+
+# 8. tests/test_summary.py
+       1. Creates a sample DataFrame with test data.
+       2. Calls the data_summary() function.
+       3. Verifies that the summary contains the "rows" key.
+       4. Verifies that the summary contains the "columns" key.
+       5. Verifies that the summary contains the "missing_values" key.
+       6. Ensures the summary output follows the expected structure.
+       7. Fails if any required summary field is missing.
+
+# 9. tests/test_main.py
+  Test 1: test_main_cli_success()
+        Creates a temporary CSV file with sample data.
+        Runs the CLI application using subprocess.run().
+        Verifies that the command executes successfully.
+        Verifies that the output CSV file is created.
+        Parses the JSON summary returned by the application.
+        Confirms that the summary contains:
+        rows
+        columns
+        missing_values
+        Ensures the end-to-end CLI workflow works correctly.
+
+  Test 2: test_main_missing_file()
+        Runs the CLI application with a non-existent input file.
+        Verifies that the application exits with an error.
+        Confirms that a "File not found" message is displayed.
+        Ensures proper error handling for invalid file paths.
 
----
-
-## Validation Rules
-
-The API performs multiple validation checks before processing the file.
-
-### File Validation
-
-- Only `.csv` files are allowed
-- MIME type validation
-- Maximum file size: 5 MB
-
-### Security Validation
-
-- Filename sanitization using `Path(file_name).name`
-- Unique file naming using timestamp and UUID
-- Protection against path traversal attacks
-
-### CSV Validation
-
-- Empty CSV detection
-- Malformed CSV detection
-- Encoding validation
-
----
-
-## Supported Encodings
-
-The API supports the following encodings:
-
-```text
-utf-8
-latin-1
-cp1252
-```
-
-The service automatically attempts each encoding until one succeeds.
-
----
-
-## Installation
-
-### Clone Repository
-
-```bash
-git clone https://github.com/gsumitkumar98-cell/clean-data-pipeline.git
-
-cd clean-data-pipeline
-```
-
----
-
-### Create Virtual Environment
-
-Windows
-
-```bash
-python -m venv venv
-
-venv\Scripts\activate
-```
-
-Linux / Mac
-
-```bash
-python3 -m venv venv
-
-source venv/bin/activate
-```
-
----
-
-### Install Runtime Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
----
-
-### Install Development Dependencies
-
-```bash
-pip install -r requirements-dev.txt
-```
-
----
-
-## Python Version
-
-Developed and tested with:
-
-```text
-Python 3.11+
-```
-
----
-
-## Running the Application
-
-Start the FastAPI server:
-
-```bash
-uvicorn api.app:app --reload
-```
-
-Application URL:
-
-```text
-http://127.0.0.1:8000
-```
-
-Swagger Documentation:
-
-```text
-http://127.0.0.1:8000/docs
-```
-
-ReDoc Documentation:
-
-```text
-http://127.0.0.1:8000/redoc
-```
-
----
-
-## API Endpoints
-
-### Health Check
-
-#### Request
-
-```http
-GET /
-```
-
-#### Response
-
-```json
-{
-  "message": "clean data pipeline api is running"
-}
-```
-
----
-
-### Upload and Clean CSV
-
-#### Request
-
-```http
-POST /summary
-```
-
-Content-Type:
-
-```text
-multipart/form-data
-```
-
-Parameter:
-
-| Name | Type | Required |
-|--------|--------|--------|
-| file | CSV File | Yes |
-
----
-
-## Success Response
-
-```json
-{
-  "message": "File cleaned successfully",
-  "raw_file": "data/raw/25_05_26_ab12cd_orders.csv",
-  "cleaned_file": "data/cleaned/cleaned_25_05_26_ab12cd_orders.csv",
-  "cleaning_report": {
-    "rows_before": 100,
-    "rows_after": 95,
-    "rows_removed": 5
-  },
-  "summary": {
-    "rows": 95,
-    "columns": 8,
-    "missing_values": {},
-    "duplicate_rows": 0
-  }
-}
-```
-
----
-
-## Error Responses
-
-### Invalid File Type
-
-```http
-400 Bad Request
-```
-
-```json
-{
-  "detail": "Only CSV files allowed"
-}
-```
-
----
-
-### Invalid MIME Type
-
-```http
-400 Bad Request
-```
-
-```json
-{
-  "detail": "Invalid file type"
-}
-```
-
----
-
-### Empty CSV
-
-```http
-400 Bad Request
-```
-
-```json
-{
-  "detail": "CSV file is empty"
-}
-```
-
----
-
-### File Too Large
-
-```http
-413 Payload Too Large
-```
-
-```json
-{
-  "detail": "File too large"
-}
-```
-
----
-
-### Unsupported Encoding
-
-```http
-422 Unprocessable Entity
-```
-
-```json
-{
-  "detail": "Unsupported encoding"
-}
-```
-
----
-
-### Malformed CSV
-
-```http
-422 Unprocessable Entity
-```
-
-```json
-{
-  "detail": "Malformed CSV file"
-}
-```
-
----
-
-### Internal Server Error
-
-```http
-500 Internal Server Error
-```
-
-```json
-{
-  "detail": "Internal server error"
-}
-```
-
----
-
-## Logging
-
-Application logs are stored in:
-
-```text
-logs/app.log
-```
-
-Logged events include:
-
-- File upload
-- Validation failures
-- Encoding detection
-- CSV parsing
-- Data cleaning
-- Summary generation
-- Unexpected exceptions
-
-Example:
-
-```text
-2026-05-27 22:30:01 - INFO - Started processing file orders.csv
-2026-05-27 22:30:02 - INFO - File decoded using utf-8 encoding
-2026-05-27 22:30:03 - INFO - Processing completed for the file orders.csv
-```
-
----
-
-## Testing
-
-Run all tests:
-
-```bash
-pytest
-```
-
-Run tests with coverage:
-
-```bash
-pytest --cov=src
-```
-
-### Covered Scenarios
-
-- Valid CSV upload
-- Invalid file extension
-- Invalid MIME type
-- File size validation
-- Empty CSV
-- Unsupported encoding
-- Malformed CSV
-- Duplicate removal
-- Summary generation
-
----
-
-## Design Decisions
-
-### Why Service Layer?
-
-Business logic is separated from API routes.
-
-```text
-app.py
-    |
-    ---> csv_service.py
-              |
-              ---> clean_data()
-              ---> data_summary()
-```
-
-Benefits:
-
-- Better maintainability
-- Easier testing
-- Clear separation of concerns
-- Cleaner API layer
-
----
-
-## Future Improvements
-
-- Docker support
-- AWS S3 integration
-- Background task processing
-- Async file handling
-- Authentication and authorization
-- Database integration
-- Environment-based configuration management
-
----
-
-## Author
-
-**Sumit Kumar Gupta**
-
-Python Backend Developer
-
-Technologies:
-- Python
-- FastAPI
-- Pandas
-- REST APIs
-- Data Processing
-- Pytest

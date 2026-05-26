@@ -1,0 +1,10 @@
+2026-05-27 01:10:48,597 - INFO - Started processing file products.csv
+2026-05-27 01:10:48,599 - INFO - Raw csv file successfully saved at path data/raw/27_05_26_cc1df3_products.csv
+2026-05-27 01:10:48,599 - INFO - File decoded using utf-8 encoding
+2026-05-27 01:10:48,603 - INFO - Rows before cleaning: 30
+2026-05-27 01:10:48,604 - INFO - Rows before cleaning: 30
+2026-05-27 01:10:48,608 - INFO - Rows after cleaning: 30
+2026-05-27 01:10:48,608 - INFO - Rows after cleaning: 30
+2026-05-27 01:10:48,611 - INFO - Cleaned csv file saved at data/cleaned/cleaned_27_05_26_cc1df3_products.csv
+2026-05-27 01:10:48,613 - INFO - Summary generated for file products.csv
+2026-05-27 01:10:48,613 - INFO - Processing completed for the file products.csv

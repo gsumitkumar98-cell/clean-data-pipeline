@@ -1,18 +1,27 @@
 # Creates the API application. UploadFile Handles uploaded files. File Tells FastAPI that the parameter should come from a file upload.
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, HTTPException
 # Handle cors
 from fastapi.middleware.cors import CORSMiddleware
-# will be using for CSV processing.
-import pandas as pd
-# StringIO creates an in-memory file-like object from a string
-from io import StringIO
+
 # using for file and folder operations.
 import os
-#import of data cleaning funtion
-from src.datacleaner import clean_data
-# import of data loading function
-from src.datasummary import data_summary
+import src.loggerfile
+import logging
+from pydantic import BaseModel
 
+from src.services.csv_service import process_csv
+
+class CleaningReport(BaseModel):
+    rows_before: int
+    rows_after: int
+    rows_removed: int
+
+class SummaryResponse(BaseModel):
+    message: str
+    raw_file: str
+    cleaned_file: str
+    cleaning_report: CleaningReport
+    summary: dict
 
 # Create a FastAPI application instance with API metadata for Swagger documentation
 app = FastAPI(
@@ -24,7 +33,7 @@ app = FastAPI(
 #cors configurations
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], #any frontend can access api
+    allow_origins=["http://localhost:3000"], #any frontend can access api
     allow_credentials=True, 
     allow_methods=["*"], # all http headers are allowed
     allow_headers=["*"] # all request headers are allowed
@@ -36,6 +45,8 @@ os.makedirs("data/raw", exist_ok=True)
 #creating the folder for store cleaned data
 os.makedirs("data/cleaned", exist_ok=True)
 
+logger = logging.getLogger(__name__)
+
 @app.get("/")
 def home():
     return {
@@ -43,69 +54,64 @@ def home():
     }
 
 # api for upload and clean csv file.
-@app.post("/summary")
+@app.post("/summary",response_model=SummaryResponse)
 async def upload_csv(
-    file: UploadFile=File(...) # required file
+    file: UploadFile = File(...)
 ):
+
     try:
-        # validation for check file extension
-        if not file.filename.endswith(".csv"):
-            return{
-               "error":"only csv file is allowed"
-            }
-        #Read the uploaded file  as bytes.
+        logger.info(
+            "Started processing file %s",
+            file.filename
+        )
+        ALLOWED_CONTENT_TYPES = [
+            "text/csv",
+            "application/vnd.ms-excel"
+        ]
+
+        if file.content_type not in ALLOWED_CONTENT_TYPES:
+
+            logger.warning(
+                "Invalid content type uploaded: %s",
+                file.content_type
+            )
+
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid file type"
+            )
+                        #check  validation for the file extension.
+        if not file.filename.lower().endswith(
+            ".csv"
+        ):
+            logger.info(
+            "Found enexpected file type uploaded: %s",
+            file.filename
+        )
+            raise HTTPException(
+                status_code=400,
+                detail="Only CSV files allowed"
+            )
+
         content = await file.read()
-
-        #store raw file 
-        raw_file_path = (
-            f"data/raw/{file.filename}"
-        )
-
-        # open and write the file
-        with open(raw_file_path, "wb") as f:
-            f.write(content)
-       
-        # decode content from bytes
-        decoded_content = content.decode("utf-8")
-
-        #used StringIO for convert content into file obj
-        decoded_file= StringIO(decoded_content)
-        #generating the dataframe
-        df=pd.read_csv(decoded_file)
-      
-        #storing original cound of dataframe before cleaning 
-        before_rows = len(df)
-       
-        #call the cleaning function
-        cleaned_df=clean_data(df,drop_nulls=True,trim_whitespace=True)
-
-        #dataframe count after cleaning
-        after_rows=len(cleaned_df)
-
-        #save cleaned file path
-        cleaned_file_path=(f"data/cleaned/cleaned_{file.filename}")
         
-        #convert cleaned dataframe into csv
-        cleaned_df.to_csv(
-            cleaned_file_path,
-            index=False,  #Avoids saving row numbers.
+       #process csv for the data cleaning
+        result = process_csv(
+            file.filename,
+            content
         )
+        # return the summary json response
+        return result
 
-        #generate summary
-        summary=data_summary(cleaned_df)
-        return{
-            "message":("file cleaned successfully"),
-            "raw file":raw_file_path,
-            "cleaned file":cleaned_file_path,
-            "cleaning report":{
-                "rows before cleaning":before_rows,
-                "row after cleaning":after_rows,
-                "rows removed after cleaning":(before_rows-after_rows)
-            },
-            "summary":summary
-        }
-    except Exception as e:
-        return {
-            "error": str(e)
-        }
+    except HTTPException:
+        raise
 
+    except Exception:
+        logger.exception(
+        "Unexpected error while processing file %s",
+        file.filename
+    )
+        raise HTTPException(
+            status_code=500,
+            detail="Internal server error"
+        )

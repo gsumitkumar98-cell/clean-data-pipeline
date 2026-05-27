@@ -133,7 +133,8 @@ def process_csv(
     cleaned_df = clean_data(
         df,
         drop_nulls=True,
-        trim_whitespace=True
+        trim_whitespace=True,
+        remove_duplicates_enabled=True
     )
    # couting the rows after cleaning
     after_rows = len(cleaned_df)

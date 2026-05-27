@@ -1,13 +1,77 @@
-#default python module for packaging 
+# default python logger module
 import logging
-# using for file and folder operations.example for create or read or delete file.
-import os
 
-os.makedirs("logs", exist_ok=True)
+# handle file paths safely
+from pathlib import Path
 
-# logger configurations
-logging.basicConfig(
-    level=logging.INFO,
-    filename="logs/app.log",
-    format="%(asctime)s - %(levelname)s - %(message)s"
-)
+
+def setup_logger() -> logging.Logger:
+    """
+    Configure and return application logger.
+
+    Returns:
+        logging.Logger:
+            Configured application logger.
+
+    Raises:
+        RuntimeError:
+            If logger setup fails.
+    """
+
+    try:
+
+        # create logs directory safely
+        log_directory = Path("logs")
+
+        log_directory.mkdir(
+            exist_ok=True
+        )
+
+        # log file path
+        log_file_path = (
+            log_directory / "app.log"
+        )
+
+        # create named logger
+        logger = logging.getLogger(
+            "clean_data_pipeline"
+        )
+
+        # avoid duplicate handlers
+        if logger.handlers:
+            return logger
+
+        logger.setLevel(logging.INFO)
+
+        # file log handler
+        file_handler = logging.FileHandler(
+            log_file_path,
+            encoding="utf-8"
+        )
+
+        # log format
+        formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - "
+            "%(levelname)s - %(message)s"
+        )
+
+        file_handler.setFormatter(
+            formatter
+        )
+
+        # add handler into logger
+        logger.addHandler(
+            file_handler
+        )
+
+        logger.info(
+            "Logger configured successfully"
+        )
+
+        return logger
+
+    except Exception as e:
+
+        raise RuntimeError(
+            f"Logger setup failed: {str(e)}"
+        )

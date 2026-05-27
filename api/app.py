@@ -106,12 +106,13 @@ async def upload_csv(
     except HTTPException:
         raise
 
-    except Exception:
+    except Exception as e:
         logger.exception(
         "Unexpected error while processing file %s",
         file.filename
     )
         raise HTTPException(
             status_code=500,
-            detail="Internal server error"
+            # detail="Internal server error"
+            detail=str(e)
         )

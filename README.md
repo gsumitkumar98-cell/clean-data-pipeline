@@ -484,23 +484,94 @@ Benefits:
 
 ---
 
-## Future Improvements
+## Docker Setup
 
-- Docker support
-- AWS S3 integration
-- Background task processing
-- Async file handling
-- Authentication and authorization
-- Database integration
-- Environment-based configuration management
+### Build Docker Image
+
+```bash
+docker build --no-cache -t clean-data-pipeline .
+```
 
 ---
+
+### Run Docker Container
+
+```bash
+docker run -p 8000:8000 clean-data-pipeline
+```
+
+Swagger Docs:
+
+```text
+http://localhost:8000/docs
+```
+
+---
+
+## Persist Files and Logs
+
+```bash
+docker run -p 8000:8000 \
+-v ${PWD}/data:/app/data \
+-v ${PWD}/logs:/app/logs \
+clean-data-pipeline
+```
+
+This stores:
+
+* uploaded files
+* cleaned files
+* logs
+
+on your local machine.
+
+---
+
+## Useful Docker Commands
+
+### Running Containers
+
+```bash
+docker ps
+```
+
+### Stop Container
+
+```bash
+docker stop <container_id>
+```
+
+### View Logs
+
+```bash
+docker logs <container_id>
+```
+
+---
+
+## Dockerfile
+
+```dockerfile
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+EXPOSE 8000
+
+CMD ["uvicorn", "api.app:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
 
 ## Author
 
 **Sumit Kumar Gupta**
 
-Python Backend Developer
 
 Technologies:
 - Python
